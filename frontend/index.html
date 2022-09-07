@@ -8,40 +8,7 @@
   <body>
     <div id="app" class="main">
       <button id="add_book">책 추가하기.</button>
-      <button id="hash"># 변경하기</button>
     </div>
     <script src="./index.js" type="module"></script>
-    <script type="module">
-      import Book from "./book.js";
-
-      const data = {
-        name: "월가를 위한 퀀트투자 바이블",
-        image: "https://image.yes24.com/goods/105655620/XL",
-      };
-
-      //클로저를 사용해서,
-      window.addEventListener("popstate", () => {
-        //render
-        alert("hi");
-      });
-      window.onload = () => {
-        if (window.location.pathname === "/detail") {
-          const book = new Book(data);
-          document.getElementById("app").appendChild(book.$target);
-        }
-      };
-      //라우팅 코드
-
-      const handleAdd = ({ image, name }) => {
-        const book = new Book({ image, name });
-        document.getElementById("app").appendChild(book.$target);
-        history.pushState({}, null, "/detail");
-      };
-
-      document.getElementById("add_book").addEventListener("click", () => handleAdd(data));
-      document.getElementById("hash").addEventListener("click", () => {
-        history.pushState({}, null, "/home");
-      });
-    </script>
   </body>
 </html>
