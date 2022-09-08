@@ -1,5 +1,3 @@
-import { Book, BookList } from "./components.js";
-
 class SampleBook {
   constructor() {
     this.image = "https://image.yes24.com/goods/105655620/XL";
@@ -8,23 +6,18 @@ class SampleBook {
 }
 
 const book = new SampleBook();
-
-// BookList([book, book])
-const routes = [
-  { path: "/", component: BookList([book, book, book]), exact: true },
-  { path: "/detail", component: "<div>book data</div>", exact: false },
-];
-
 const $app = document.getElementById("app");
 
-const render = (path) => {
-  console.log("render run");
-  const component =
-    routes.find((v) => (v.exact ? v.path === path : v.path.includes(path)))?.component ||
-    "<div>Not Found</div>";
+const getJSON = (path) =>
+  new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("GET", path);
+    request.responseType = "json";
+    request.send();
+    request.onload = () => {
+      if (request.status === 200 && request.response) resolve(request.response);
+      else reject("fetch failed");
+    };
+  });
 
-  console.log(component);
-  $app.replaceChildren(component);
-};
-
-window.addEventListener("DOMContentLoaded", () => render(window.location.pathname));
+export { $app, book, getJSON };
