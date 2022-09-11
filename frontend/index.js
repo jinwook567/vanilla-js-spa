@@ -1,12 +1,10 @@
-class SampleBook {
-  constructor() {
-    this.image = "https://image.yes24.com/goods/105655620/XL";
-    this.name = "월가를 위한 퀀트투자 바이블";
-  }
-}
-
-const book = new SampleBook();
 const $app = document.getElementById("app");
+const showdown = window.showdown;
+const converter = new showdown.Converter();
+
+const convertMdToHTML = (md) => {
+  return converter.makeHtml(md);
+};
 
 const getJSON = (path) =>
   new Promise((resolve, reject) => {
@@ -20,4 +18,4 @@ const getJSON = (path) =>
     };
   });
 
-export { $app, book, getJSON };
+export { $app, getJSON, convertMdToHTML };
