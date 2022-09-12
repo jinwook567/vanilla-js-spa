@@ -10,8 +10,7 @@ const fetchBooks = () => {
     if (status === "success") return { books, status };
 
     try {
-      const response = await getJSON("./book-data.json");
-      books = response.data;
+      books = await getJSON("./book-data.json");
       status = "success";
     } catch (e) {
       status = "failed";
@@ -40,6 +39,7 @@ const BookList = async () => {
   $temp.className = "main";
 
   const { books, status } = await getBooks();
+
   if (status === "failed") return Error("fetch error");
 
   $temp.append(...books.map(({ image, name, id }) => Book({ image, name, id })));
