@@ -1,7 +1,7 @@
 import { historyPush } from "./router.js";
-import { getJSON } from "./index.js";
-import { convertMdToHTML } from "./index.js";
+import { getJSON } from "./utils.js";
 
+//클로저를 활용해서 api fetch를 한번만 수행하도록 함. (전역 변수 사용 억제)
 const fetchBooks = () => {
   let books = [];
   let status = "idle";
@@ -47,13 +47,11 @@ const BookList = async () => {
 };
 
 const Book = ({ image, name, text, id }) => {
-  const html = convertMdToHTML(text);
-
   const content = `<div class="book">
   <div><h2>${name}</h2></div>
     <div><image src=${image} alt=${name} width=180/></div>
   </div>
-  ${text ? html : ""}
+  ${text ? text : ""}
   `;
   const $element = createElement(content);
 

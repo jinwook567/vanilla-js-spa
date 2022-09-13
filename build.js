@@ -1,9 +1,8 @@
 import path from "path";
-import { open, readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import MarkDownIt from "markdown-it";
 
-//파일 디렉토리를 읽고, 이것들을 name 프로퍼티로 설정한다.
-//id를 index로 넣어준다.
-//text 프로퍼티에 md의 내용을 그대로 넣어놓는다.
+const md = new MarkDownIt();
 
 async function makeBookDataJSON() {
   try {
@@ -13,7 +12,8 @@ async function makeBookDataJSON() {
 
     const data = await Promise.all(
       folders.map(async (folder, index) => {
-        const text = await readFile(`${folderPath}/${folder}/index.md`, "utf-8");
+        const content = await readFile(`${folderPath}/${folder}/index.md`, "utf8");
+        const text = md.render(content);
         return { name: folder, id: index, text };
       })
     );

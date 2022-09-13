@@ -1,10 +1,4 @@
 const $app = document.getElementById("app");
-const showdown = window.showdown;
-const converter = new showdown.Converter();
-
-const convertMdToHTML = (md) => {
-  return converter.makeHtml(md);
-};
 
 const getJSON = (path) =>
   new Promise((resolve, reject) => {
@@ -18,4 +12,4 @@ const getJSON = (path) =>
     };
   });
 
-export { $app, getJSON, convertMdToHTML };
+export { $app, getJSON };

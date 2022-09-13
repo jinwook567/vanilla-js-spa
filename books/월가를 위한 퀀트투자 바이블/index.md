@@ -6,4 +6,4 @@ thumbnail: book_thumbnail.jpeg
 
 ## hello world bro
 
-![book image](./book_thumbnail.jpeg)
+![book image](book_thumbnail.jpeg)

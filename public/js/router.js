@@ -1,6 +1,5 @@
 import { BookList, BookDetail, NotFound } from "./components.js";
-import { $app } from "./index.js";
-import { getJSON } from "./index.js";
+import { $app } from "./utils.js";
 
 const routes = [
   { path: "/", component: BookList, exact: true },
