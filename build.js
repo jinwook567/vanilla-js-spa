@@ -4,21 +4,38 @@ import MarkDownIt from "markdown-it";
 
 const mdFolderRelativePathInPublicFolder = "./books";
 const jsonFolderRelativePathInPublicFolder = "./data";
-const md = new MarkDownIt();
 
-// class Md extends MarkDownIt {
-//   changeImagePathOfMdRenderer() {
-//     console.log("hi");
-//   }
-// }
+class Markdown extends MarkDownIt {
+  async readFileInStringForm(path) {
+    const mdStr = await readFile(path, "utf8");
+    return mdStr;
+  }
 
-// class MdParser {
-//   constructor() {}
+  // changeImagePathOfMdRenderer() {
+  //   console.log("hi");
+  // }
+}
 
-//   read() {}
+// TODO: public의 하위 폴더의 이름을 받아서 public과의 상대 경로를 구해주는 함수 만들기. BFS로 만들기.
+const createRelativePathInPublic = (relativePath, rootFolderName) => {
+  if (isRelativePath(path)) {
+    path = path.replace("./", "");
+    return `${relativePath}/${path}`;
+  } else {
+    return path;
+  }
+};
 
-//   extractHeader() {}
-// }
+const isRelativePath = (path) => {
+  return !path.match(/^http[s]*:\/\//) && !path.match(/^data:image/);
+};
+
+const createAbsolutePathByRelativePathInPublic = (relativePathInPublic) => {
+  const directoryArr = relativePathInPublic.replace("./", "").split("/");
+  return path.resolve("public", ...directoryArr);
+};
+
+const md = new Markdown();
 
 async function parseMdFolderToJSON() {
   try {
@@ -43,11 +60,6 @@ async function parseMdFolderToJSON() {
     console.error(e);
   }
 }
-
-const getAbsolutePathInPublicByRelativePath = (relativePathInPublic) => {
-  const directoryArr = relativePathInPublic.replace("./", "").split("/");
-  return path.resolve("public", ...directoryArr);
-};
 
 const readMdFile = async (path) => {
   try {
@@ -95,23 +107,6 @@ function createHTMLByMd(mdStr) {
 }
 
 parseMdFolderToJSON();
-
-const changeImagePath = (path, relativePath) => {
-  if (isLocalImageFile(path)) {
-    path = path.replace("./", "");
-    return `${relativePath}/${path}`;
-  } else {
-    return path;
-  }
-};
-
-const isLocalImageFile = (path) => {
-  if (!path.match(/^http[s]*:\/\//) && !path.match(/^data:image/)) {
-    return true;
-  } else {
-    return false;
-  }
-};
 
 //어떻게 하면 유연한 아키텍쳐를 짤 수 있을까...?
 //오류가 파고들 틈이 없을 만큼 짧은 함수들로 구성해보자..
