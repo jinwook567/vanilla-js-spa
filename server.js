@@ -3,10 +3,11 @@ import path from "path";
 const app = express();
 const port = 3000;
 const __dirname = path.resolve();
-app.use(express.static(__dirname));
+app.use(express.static("public"));
+app.use(express.static("books"));
 
 app.get("/*", (req, res) => {
-  res.sendFile(`${__dirname}/index.html`);
+  res.sendFile(`${__dirname}/public/index.html`);
 });
 
 app.listen(port, () => {

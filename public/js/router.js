@@ -1,4 +1,4 @@
-import { BookList, BookDetail, NotFound } from "./components.js";
+import { BookList, BookDetail, NotFound, Error } from "./components.js";
 import { $app } from "./utils.js";
 
 const routes = [
@@ -10,7 +10,11 @@ const render = async (path) => {
   const component =
     routes.find((v) => (v.exact ? v.path === path : path.includes(v.path)))?.component || NotFound;
 
-  $app.replaceChildren(await component());
+  try {
+    $app.replaceChildren(await component());
+  } catch (e) {
+    $app.replaceChildren(Error(e));
+  }
 };
 
 const historyPush = (path) => {

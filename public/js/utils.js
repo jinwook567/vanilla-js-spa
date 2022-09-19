@@ -1,6 +1,6 @@
 const $app = document.getElementById("app");
 
-const getJSON = (path) =>
+const fetchData = (path) =>
   new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("GET", path);
@@ -12,4 +12,4 @@ const getJSON = (path) =>
     };
   });
 
-export { $app, getJSON };
+export { $app, fetchData };
