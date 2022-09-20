@@ -11,19 +11,58 @@ class Markdown extends MarkDownIt {
     return mdStr;
   }
 
-  // changeImagePathOfMdRenderer() {
-  //   console.log("hi");
-  // }
+  changeRenderImageRelativePathPublicAsRoot(currentRelativePathInPublic) {
+    const temp = this.renderer.rules.image;
+    this.renderer.rules.image = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const aIndex = token.attrIndex("src");
+      if (isRelativePath(token.attrs[aIndex][1])) {
+        token.attrs[aIndex][1] = changeRelativePathPublicAsRoot(
+          token.attrs[aIndex][1],
+          currentRelativePathInPublic
+        );
+      }
+      return temp(tokens, idx, options, env, self);
+    };
+  }
 }
 
-// TODO: public의 하위 폴더의 이름을 받아서 public과의 상대 경로를 구해주는 함수 만들기. BFS로 만들기.
-const createRelativePathInPublic = (relativePath, rootFolderName) => {
-  if (isRelativePath(path)) {
-    path = path.replace("./", "");
-    return `${relativePath}/${path}`;
-  } else {
-    return path;
+const separateNodeField = (mdStr) => {
+  const nodeFieldRaw = mdStr.match(/---[\d\D]*---/);
+  const nodeFieldStr = nodeFieldRaw ? nodeFieldRaw[0] : "";
+  const bodyStr = mdStr.replace(/---[\d\D]*---/, "");
+  return { nodeFieldStr, bodyStr };
+};
+
+const createNodeField = (nodeFieldStr) => {
+  if (!nodeFieldStr.match(/---[\d\D]*---/)) throw new Error("nodeField 영역이 존재하지 않습니다.");
+
+  const field = {};
+  const temp = nodeFieldStr.split("\n");
+  const keyValues = temp.slice(1, temp.length - 1);
+  keyValues.forEach((v) => {
+    const [key, value] = v.split(":");
+    field[key] = value.trim();
+  });
+
+  return field;
+};
+
+const changeRelativePathPublicAsRoot = (relativePath, currentRelativePathInPublic) => {
+  const folderArr = currentRelativePathInPublic.split("/");
+
+  for (let i = 0; i < relativePath.lenght; i += 3) {
+    if (relativePath.slice(i, i + 3) === "../") {
+      folderArr.pop();
+    } else {
+      break;
+    }
   }
+
+  if (folderArr.length === 0) {
+    throw new Error("참조하는 상대 경로가 public 폴더 내부에 있지 않습니다.");
+  }
+  return `${currentRelativePathInPublic}/${relativePath.replace("./", "")}`;
 };
 
 const isRelativePath = (path) => {
@@ -35,112 +74,84 @@ const createAbsolutePathByRelativePathInPublic = (relativePathInPublic) => {
   return path.resolve("public", ...directoryArr);
 };
 
+const createRelativePathInPublicByAbsolutePath = (absolutePath) => {
+  const folderArr = absolutePath.split("/");
+  const index = folderArr.findIndex((v) => v === "public");
+  folderArr[index] = ".";
+  return folderArr.slice(index).join("/");
+};
+
 const md = new Markdown();
 
 async function parseMdFolderToJSON() {
   try {
-    const mdFolderPath = getAbsolutePathInPublicByRelativePath(mdFolderRelativePathInPublicFolder);
-    const mdFolders = await readdir(mdFolderPath);
+    const absoluteMdFolderPath = createAbsolutePathByRelativePathInPublic(
+      mdFolderRelativePathInPublicFolder
+    );
+
+    const mdFolders = await readdir(absoluteMdFolderPath);
 
     const data = await Promise.all(
       mdFolders.map(async (folderName, index) => {
-        const mdStr = await readMdFile(`${mdFolderPath}/${folderName}`);
-        const infomation = createCardInfomation(mdStr, folderName);
-        changeImagePathOfMdRenderer(md, `${mdFolderRelativePathInPublicFolder}/${folderName}`);
-        const text = createHTMLByMd(mdStr);
-        return { name: folderName, id: index, text, ...infomation };
+        const currentAbsolutePath = `${absoluteMdFolderPath}/${folderName}`;
+        const mdStr = await md.readFileInStringForm(`${currentAbsolutePath}/index.md`);
+
+        const currentRelativePathInPublic =
+          createRelativePathInPublicByAbsolutePath(currentAbsolutePath);
+        md.changeRenderImageRelativePathPublicAsRoot(currentRelativePathInPublic);
+
+        const { nodeFieldStr, bodyStr } = separateNodeField(mdStr);
+        const html = md.render(bodyStr);
+
+        const nodeField = createNodeField(nodeFieldStr);
+        if (!nodeField.coverImage)
+          throw new Error(
+            "커버 이미지는 필수입니다. \n---\ncoverImage:path\n---" +
+              "\n형식으로 기입해주세요." +
+              "\n책이름:" +
+              folderName
+          );
+        nodeField.coverImage = changeRelativePathPublicAsRoot(
+          nodeField.coverImage,
+          currentRelativePathInPublic
+        );
+
+        return { index, ...nodeField, html };
       })
     );
 
-    const jsonPath = getAbsolutePathInPublicByRelativePath(
-      `${jsonFolderRelativePathInPublicFolder}/book-data.json`
+    const absoluteJSONFolderPath = createAbsolutePathByRelativePathInPublic(
+      jsonFolderRelativePathInPublicFolder
     );
-    await writeFile(jsonPath, JSON.stringify(data));
+    await writeFile(absoluteJSONFolderPath, JSON.stringify(data));
   } catch (e) {
     console.error(e);
   }
-}
-
-const readMdFile = async (path) => {
-  try {
-    const content = await readFile(`${path}/index.md`, "utf8");
-    return content;
-  } catch (e) {
-    console.error(e);
-    throw "md 파일 읽기 실패. 파일명이 index.md인지 확인" + path;
-  }
-};
-
-function createCardInfomation(mdStr, folderName) {
-  const raw = mdStr.match(/---[\d\D]*---/);
-  const obj = {};
-  if (raw) {
-    const temp = raw[0].split("\n");
-    const keyValues = temp.slice(1, temp.length - 1);
-    keyValues.forEach((v) => {
-      const [key, value] = v.split(":");
-      obj[key] = value.trim();
-    });
-
-    if (!obj.image)
-      throw "썸네일 프로퍼티가 존재하지 않습니다. ---\nthumbnail:(image)\n--- 형태로 삽입해주세요.";
-
-    obj.image = changeImagePath(obj.image, `${mdFolderRelativePathInPublicFolder}/${folderName}`);
-  }
-  return obj;
-}
-
-const changeImagePathOfMdRenderer = (md, relativeFolderPath) => {
-  const temp = md.renderer.rules.image;
-  md.renderer.rules.image = (tokens, idx, options, env, self) => {
-    const token = tokens[idx];
-    const aIndex = token.attrIndex("src");
-    token.attrs[aIndex][1] = changeImagePath(token.attrs[aIndex][1], relativeFolderPath);
-    return temp(tokens, idx, options, env, self);
-  };
-};
-
-function createHTMLByMd(mdStr) {
-  const eleminatedCardInfomationStr = mdStr.replace(/---[\d\D]*---/, "");
-  const rendered = md.render(eleminatedCardInfomationStr);
-  return rendered;
 }
 
 parseMdFolderToJSON();
 
-//어떻게 하면 유연한 아키텍쳐를 짤 수 있을까...?
-//오류가 파고들 틈이 없을 만큼 짧은 함수들로 구성해보자..
+//public 폴더 아래, 같은 폴더명이 있을 경우 문제가 발생할 수 있어 사용하지 않기로함.
+const findFolderInPublic = async (folderName) => {
+  //파일이 그렇게 많지 않으므로 큐를 단순 array로 구현. BFS 탐색
+  const queue = [];
+  queue.push(["public"]);
+  while (queue.length) {
+    try {
+      const folderArr = queue.shift();
+      const lastSubFolder = folderArr[folderArr.length - 1];
 
-//이미지의 경로를 만들어주어야 한다.
+      if (lastSubFolder === folderName) return folderArr.join("/").replace("public", ".");
 
-//1. ---,--- 안에 들어간 jpeg, jpg, png 파일을 변형시킨다.
-//2. image 태그 안에 들어간 jpeg, jpg, png 파일의 경로를 변형시킨다.
-
-//1의 경우에 객체의 key에 .jpg가 들어갈 수도 있으므로, :에 대해서 분리한 부분에 대해서만 처리를 해줘야 한다. 이게 아니고, 규약한 일부 객체 프로퍼티만 이미지 경로로 바꿔준다.
-//경로가 http, https라면 폴더 경로를 바꿔주면 안된다.
-
-async function makeBookDataJSON() {
-  try {
-    const __dirname = path.resolve();
-    const folderPath = `${__dirname}/${mdFolderRelativePathInPublicFolder.replace("./", "public")}`;
-
-    const folders = await readdir(folderPath);
-
-    const data = await Promise.all(
-      folders.map(async (folder, index) => {
-        const content = await readFile(`${folderPath}/${folder}/index.md`, "utf8");
-        const infoObj = extractInfomationObj(content);
-
-        const body = content.replace(/---[\d\D]*---/, "");
-
-        const text = md.render(body);
-
-        return { name: folder, id: index, text, ...infoObj };
-      })
-    );
-
-    await writeFile(`${__dirname}/public/data/book-data.json`, JSON.stringify(data));
-  } catch (e) {
-    console.log(e);
+      const folders = await readdir(path.resolve(...folderArr));
+      folders.forEach((folder) => queue.push([...folderArr, folder]));
+    } catch (e) {
+      if (e.code === "ENOTDIR") {
+        //폴더가 아닐 경우 발생하는 에러는 건너뜀.
+        continue;
+      }
+      console.error(e);
+    }
   }
-}
+  throw new Error("no folder");
+};
