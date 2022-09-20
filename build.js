@@ -6,26 +6,26 @@ const mdFolderRelativePathInPublicFolder = "./books";
 const jsonFolderRelativePathInPublicFolder = "./data";
 
 class Markdown extends MarkDownIt {
-  async readFileInStringForm(path) {
-    const mdStr = await readFile(path, "utf8");
-    return mdStr;
-  }
-
   changeRenderImageRelativePathPublicAsRoot(currentRelativePathInPublic) {
     const temp = this.renderer.rules.image;
     this.renderer.rules.image = (tokens, idx, options, env, self) => {
       const token = tokens[idx];
       const aIndex = token.attrIndex("src");
-      if (isRelativePath(token.attrs[aIndex][1])) {
-        token.attrs[aIndex][1] = changeRelativePathPublicAsRoot(
-          token.attrs[aIndex][1],
-          currentRelativePathInPublic
-        );
-      }
+
+      token.attrs[aIndex][1] = changeRelativePathPublicAsRoot(
+        token.attrs[aIndex][1],
+        currentRelativePathInPublic
+      );
+
       return temp(tokens, idx, options, env, self);
     };
   }
 }
+
+const readFileInStringForm = async (path) => {
+  const mdStr = await readFile(path, "utf8");
+  return mdStr;
+};
 
 const separateNodeField = (mdStr) => {
   const nodeFieldRaw = mdStr.match(/---[\d\D]*---/);
@@ -41,7 +41,9 @@ const createNodeField = (nodeFieldStr) => {
   const temp = nodeFieldStr.split("\n");
   const keyValues = temp.slice(1, temp.length - 1);
   keyValues.forEach((v) => {
-    const [key, value] = v.split(":");
+    const temp = v.split(":");
+    const key = temp[0];
+    const value = temp.slice(1).join(":");
     field[key] = value.trim();
   });
 
@@ -49,6 +51,7 @@ const createNodeField = (nodeFieldStr) => {
 };
 
 const changeRelativePathPublicAsRoot = (relativePath, currentRelativePathInPublic) => {
+  if (!isRelativePath(relativePath)) return relativePath;
   const folderArr = currentRelativePathInPublic.split("/");
 
   for (let i = 0; i < relativePath.lenght; i += 3) {
@@ -62,7 +65,8 @@ const changeRelativePathPublicAsRoot = (relativePath, currentRelativePathInPubli
   if (folderArr.length === 0) {
     throw new Error("참조하는 상대 경로가 public 폴더 내부에 있지 않습니다.");
   }
-  return `${currentRelativePathInPublic}/${relativePath.replace("./", "")}`;
+
+  return encodeURI(`${currentRelativePathInPublic}/${relativePath.replace("./", "")}`);
 };
 
 const isRelativePath = (path) => {
@@ -94,7 +98,7 @@ async function parseMdFolderToJSON() {
     const data = await Promise.all(
       mdFolders.map(async (folderName, index) => {
         const currentAbsolutePath = `${absoluteMdFolderPath}/${folderName}`;
-        const mdStr = await md.readFileInStringForm(`${currentAbsolutePath}/index.md`);
+        const mdStr = await readFileInStringForm(`${currentAbsolutePath}/index.md`);
 
         const currentRelativePathInPublic =
           createRelativePathInPublicByAbsolutePath(currentAbsolutePath);
@@ -104,6 +108,7 @@ async function parseMdFolderToJSON() {
         const html = md.render(bodyStr);
 
         const nodeField = createNodeField(nodeFieldStr);
+
         if (!nodeField.coverImage)
           throw new Error(
             "커버 이미지는 필수입니다. \n---\ncoverImage:path\n---" +
@@ -111,17 +116,18 @@ async function parseMdFolderToJSON() {
               "\n책이름:" +
               folderName
           );
+
         nodeField.coverImage = changeRelativePathPublicAsRoot(
           nodeField.coverImage,
           currentRelativePathInPublic
         );
 
-        return { index, ...nodeField, html };
+        return { id: index, ...nodeField, html, name: folderName };
       })
     );
 
     const absoluteJSONFolderPath = createAbsolutePathByRelativePathInPublic(
-      jsonFolderRelativePathInPublicFolder
+      `${jsonFolderRelativePathInPublicFolder}/book-data.json`
     );
     await writeFile(absoluteJSONFolderPath, JSON.stringify(data));
   } catch (e) {

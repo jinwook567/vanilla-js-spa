@@ -13,6 +13,7 @@ const render = async (path) => {
   try {
     $app.replaceChildren(await component());
   } catch (e) {
+    console.error(e);
     $app.replaceChildren(Error(e));
   }
 };

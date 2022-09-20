@@ -28,6 +28,7 @@ const BookDetail = async () => {
 
   const books = await getBooks();
   const book = books.find((el) => el.id === Number(id));
+
   return Book(book);
 };
 
@@ -37,20 +38,26 @@ const BookList = async () => {
 
   const books = await getBooks();
 
-  $temp.append(...books.map(({ image, name, id }) => Book({ image, name, id })));
+  $temp.append(...books.map(({ coverImage, name, id }) => Book({ coverImage, name, id })));
   return $temp;
 };
 
-const Book = ({ image, name, text, id }) => {
-  const content = `<div class="book">
-  <div><h2>${name}</h2></div>
-    <div><image src=${encodeURIComponent(image)} alt=${name} width=180/></div>
+const Book = ({ coverImage, name, html, id }) => {
+  const content = `<div>
+  <div class="card">
+    <h2>${name}</h2>
+    <img src=${coverImage} alt=${name} width=180/>
   </div>
-  ${text ? text : ""}
+    <div class="body">
+      ${html ? html : ""}
+    </div>
+  </div>
   `;
 
   const $element = createElement(content);
-  $element.addEventListener("click", () => {
+  const $card = $element.querySelector(".card");
+
+  $card.addEventListener("click", () => {
     historyPush(`/detail?id=${id}`);
   });
   return $element;
