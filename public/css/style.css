@@ -1,7 +1,4 @@
 .main {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
   padding-left: 30px;
   padding-right: 30px;
 }
@@ -14,5 +11,27 @@
 }
 
 .body {
-  width: 100%;
+  width: 50%;
+  margin: 0 auto;
+}
+
+.list {
+  padding-left: 10%;
+  padding-right: 10%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 80px;
+  column-gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .list {
+    grid-template-columns: repeat(2, 1fr);
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+
+  .body {
+    width: 90%;
+  }
 }

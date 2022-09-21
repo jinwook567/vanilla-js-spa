@@ -34,7 +34,7 @@ const BookDetail = async () => {
 
 const BookList = async () => {
   const $temp = document.createElement("div");
-  $temp.className = "main";
+  $temp.className = "list";
 
   const books = await getBooks();
 
