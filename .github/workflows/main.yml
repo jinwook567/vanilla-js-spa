@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 12.x
 
+      - name: Package Install
+        run: npm install
+
       - name: Build
         run: npm run build
 
