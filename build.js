@@ -130,6 +130,7 @@ async function parseMdFolderToJSON() {
       `${jsonFolderRelativePathInPublicFolder}/book-data.json`
     );
     await writeFile(absoluteJSONFolderPath, JSON.stringify(data));
+    console.log("build complete");
   } catch (e) {
     console.error(e);
   }
