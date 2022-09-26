@@ -1,22 +1,39 @@
-import { BookList, BookDetail, NotFound, Error } from "./components.js";
-import { $app } from "./utils.js";
-import { fetchData } from "./utils.js";
+import { BookList, BookDetail, NotFound, ErrorMesasge } from "./components.js";
+import { $app, asyncFetch } from "./utils.js";
 
 const routes = [
   { path: "/", component: BookList, exact: true },
   { path: "/detail", component: BookDetail, exact: false },
 ];
 
-// TODO: BaseUrl을 package.json에 넣어놓고, 빌드 과정에서 ./data/baseUrl.json 을 생성한다. 그리고 해당 경로에 baseUrl을 저장한다. 불필요한 하위 경로를 제외시켜준다.
-const fetchBaseUrl = async (path) => {
-  try {
-    const baseUrl = await fetchData("./data/baseUrl.json");
-    const subPath = baseUrl.slice(window.location.origin.length, baseUrl.length);
-    return path.replace(subPath, "");
-  } catch (e) {
-    return path;
-  }
-};
+function createHomePageFetcher() {
+  let homepage = window.location.origin;
+  let isExcuted = false;
+
+  return {
+    async read() {
+      if (isExcuted) return homepage;
+      try {
+        homepage = await asyncFetch("./data/homepage.json");
+      } catch (e) {
+        //homepage.json이 없는 경우.
+      } finally {
+        isExcuted = true;
+        return homepage;
+      }
+    },
+
+    isProduction() {
+      return !homepage.test(/http\:\/\/localhost:/gi);
+    },
+
+    async changePath() {
+      await this.read();
+    },
+  };
+}
+
+const homepageFetcher = createHomePageFetcher();
 
 const render = async (path) => {
   //배포를 위한 임시 처리, line 10 TODO 완성해야함.
@@ -29,22 +46,22 @@ const render = async (path) => {
     $app.replaceChildren(await component());
   } catch (e) {
     console.error(e);
-    $app.replaceChildren(Error(e));
+    $app.replaceChildren(await ErrorMesasge(e));
   }
 };
 
-const historyPush = (path) => {
+const historyPush = async (path) => {
   history.pushState({}, "", path);
-  render(path);
+  await render(path);
 };
 
 //뒤로 가기, 앞으로 가기 렌더링
-window.addEventListener("popstate", () => render(window.location.pathname));
+window.addEventListener("popstate", async () => await render(window.location.pathname));
 
 //초기 렌더링
 window.addEventListener("DOMContentLoaded", async () => {
-  console.log(window.location.origin);
-  render(window.location.pathname);
+  await homepageFetcher.read();
+  await render(window.location.pathname);
 });
 
 export { historyPush };

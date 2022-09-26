@@ -1,15 +1,11 @@
 const $app = document.getElementById("app");
 
-const fetchData = (path) =>
-  new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("GET", path);
-    request.responseType = "json";
-    request.send();
-    request.onload = () => {
-      if (request.status === 200 && request.response) resolve(request.response);
-      else reject("fetch failed");
-    };
-  });
-
-export { $app, fetchData };
+const asyncFetch = async (...args) => {
+  try {
+    const response = await fetch(...args);
+    return await response.json();
+  } catch (e) {
+    throw Error("데이터를 불러오는데 실패하였습니다.");
+  }
+};
+export { $app, asyncFetch };

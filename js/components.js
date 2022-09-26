@@ -1,48 +1,48 @@
 import { historyPush } from "./router.js";
-import { fetchData } from "./utils.js";
+import { asyncFetch } from "./utils.js";
 
 //클로저를 활용해서 api fetch를 한번만 수행하도록 함. (전역 변수 사용 억제)
-const fetchBooks = () => {
+const createBookFetcher = () => {
   let books = [];
-  let status = "idle";
+  let isExcuted = false;
 
-  return async function () {
-    if (status === "success") return books;
-
-    try {
-      books = await fetchData("./data/book-data.json");
-      status = "success";
+  return {
+    async read() {
+      if (isExcuted) return books;
+      books = await asyncFetch("./data/book-data.json");
+      isExcuted = true;
       return books;
-    } catch (e) {
-      throw "책 정보를 불러오는데 실패하였습니다.";
-    }
+    },
   };
 };
 
-const getBooks = fetchBooks();
+const bookFetcher = createBookFetcher();
 
 const BookDetail = async () => {
   const queryString = location.search;
   const params = new URLSearchParams(queryString);
   const id = params.get("id");
 
-  const books = await getBooks();
+  const books = await bookFetcher.read();
   const book = books.find((el) => el.id === Number(id));
 
-  return Book(book);
+  return await Book(book);
 };
 
 const BookList = async () => {
   const $temp = document.createElement("div");
   $temp.className = "list";
 
-  const books = await getBooks();
+  const books = await bookFetcher.read();
+  const bookComponents = await Promise.all(
+    books.map(async ({ coverImage, name, id }) => await Book({ coverImage, name, id }))
+  );
 
-  $temp.append(...books.map(({ coverImage, name, id }) => Book({ coverImage, name, id })));
+  $temp.append(...bookComponents);
   return $temp;
 };
 
-const Book = ({ coverImage, name, html, id }) => {
+const Book = async ({ coverImage, name, html, id }) => {
   const content = `<div>
   <div class="card">
     <h2>${name}</h2>
@@ -57,18 +57,18 @@ const Book = ({ coverImage, name, html, id }) => {
   const $element = createElement(content);
   const $card = $element.querySelector(".card");
 
-  $card.addEventListener("click", () => {
-    historyPush(`/detail?id=${id}`);
+  $card.addEventListener("click", async () => {
+    await historyPush(`/detail?id=${id}`);
   });
   return $element;
 };
 
-const NotFound = () => {
+const NotFound = async () => {
   const content = `Not Found 404`;
   return createElement(content);
 };
 
-const Error = (message) => {
+const ErrorMesasge = async (message) => {
   return createElement(`에러, ${message}`);
 };
 
@@ -78,4 +78,4 @@ const createElement = (content) => {
   return $temp;
 };
 
-export { Book, BookList, BookDetail, NotFound, Error };
+export { Book, BookList, BookDetail, NotFound, ErrorMesasge };
