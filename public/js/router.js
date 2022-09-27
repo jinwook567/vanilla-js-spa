@@ -13,8 +13,12 @@ function createHomePageFetcher() {
   return {
     async read() {
       if (isExcuted) return homepage;
+
       try {
-        homepage = await asyncFetch("./data/homepage.json");
+        const response = await asyncFetch("./data/homepage.json");
+        if (response.includes(window.location.origin)) {
+          homepage = response;
+        }
       } catch (e) {
         //homepage.json이 없는 경우.
       } finally {
@@ -23,12 +27,11 @@ function createHomePageFetcher() {
       }
     },
 
-    isProduction() {
-      return !homepage.test(/http\:\/\/localhost:/gi);
-    },
+    async changePath(path) {
+      if (!isExcuted) await this.read();
 
-    async changePath() {
-      await this.read();
+      const subpath = homepage.slice(window.location.origin.length, homepage.length);
+      return `${subpath}${path}`;
     },
   };
 }
@@ -36,8 +39,7 @@ function createHomePageFetcher() {
 const homepageFetcher = createHomePageFetcher();
 
 const render = async (path) => {
-  //배포를 위한 임시 처리, line 10 TODO 완성해야함.
-  path = path.replace("/vanilla-js-spa", "");
+  path = await homepageFetcher.changePath(path);
 
   const component =
     routes.find((v) => (v.exact ? v.path === path : path.includes(v.path)))?.component || NotFound;
@@ -51,6 +53,7 @@ const render = async (path) => {
 };
 
 const historyPush = async (path) => {
+  path = await homepageFetcher.changePath(path);
   history.pushState({}, "", path);
   await render(path);
 };

@@ -50,6 +50,42 @@ const createNodeField = (nodeFieldStr) => {
   return field;
 };
 
+const relativePathInPublic = {
+  changePublicAsRoot(relativePath, currentRelativePathInPublic) {
+    if (!this.isRelativePath(relativePath)) return relativePath;
+    const folderArr = currentRelativePathInPublic.split("/");
+
+    for (let i = 0; i < relativePath.lenght; i += 3) {
+      if (relativePath.slice(i, i + 3) === "../") {
+        folderArr.pop();
+      } else {
+        break;
+      }
+    }
+
+    if (folderArr.length === 0) {
+      throw new Error("참조하는 상대 경로가 public 폴더 내부에 있지 않습니다.");
+    }
+
+    return encodeURI(`${currentRelativePathInPublic}/${relativePath.replace("./", "")}`);
+  },
+
+  createAbsolutePath(relativePathInPublic) {
+    const directoryArr = relativePathInPublic.replace("./", "").split("/");
+    return path.resolve("public", ...directoryArr);
+  },
+
+  isRelatviePath(path) {
+    return !path.match(/^http[s]*:\/\//) && !path.match(/^data:image/);
+  },
+  createPathByAbsolutePath() {
+    const folderArr = absolutePath.split("/");
+    const index = folderArr.findIndex((v) => v === "public");
+    folderArr[index] = ".";
+    return folderArr.slice(index).join("/");
+  },
+};
+
 const changeRelativePathPublicAsRoot = (relativePath, currentRelativePathInPublic) => {
   if (!isRelativePath(relativePath)) return relativePath;
   const folderArr = currentRelativePathInPublic.split("/");
