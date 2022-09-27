@@ -3,6 +3,8 @@ coverImage: book_thumbnail.jpeg
 date: 2022-08-02
 ---
 
+![bookimage](book_thumbnail.jpeg)
+
 # 일관성
 
 - 일관성의 중요성을 S&P 500 지수를 언급하며 말하고 있다. 많은 투자 전략들이 S&P 500의 수익률을 따라오지 못한다.
