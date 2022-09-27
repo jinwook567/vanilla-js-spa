@@ -2,8 +2,8 @@ import { BookList, BookDetail, NotFound, ErrorMesasge } from "./components.js";
 import { $app, asyncFetch } from "./utils.js";
 
 const routes = [
-  { path: "/", component: BookList, exact: true },
-  { path: "/detail", component: BookDetail, exact: false },
+  { path: "/", component: BookList },
+  { path: "/detail", component: BookDetail },
 ];
 
 function createHomePageFetcher() {
@@ -16,7 +16,6 @@ function createHomePageFetcher() {
 
       try {
         const response = await asyncFetch("./data/homepage.json");
-
         if (response.includes(window.location.origin)) {
           homepage = response;
         }
@@ -42,9 +41,7 @@ const homepageFetcher = createHomePageFetcher();
 const render = async (path) => {
   const subpath = await homepageFetcher.getSubPath();
 
-  const component =
-    routes.find((v) => (v.exact ? subpath + v.path === path : path.includes(subpath + v.path)))
-      ?.component || NotFound;
+  const component = routes.find((v) => subpath + v.path === path)?.component || NotFound;
 
   try {
     $app.replaceChildren(await component());
@@ -57,7 +54,7 @@ const render = async (path) => {
 const historyPush = async (path) => {
   const subpath = await homepageFetcher.getSubPath();
   history.pushState({}, "", subpath + path);
-  await render(path);
+  await render(subpath + path);
 };
 
 //뒤로 가기, 앞으로 가기 렌더링
