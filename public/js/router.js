@@ -16,6 +16,7 @@ function createHomePageFetcher() {
 
       try {
         const response = await asyncFetch("./data/homepage.json");
+
         if (response.includes(window.location.origin)) {
           homepage = response;
         }
@@ -27,11 +28,11 @@ function createHomePageFetcher() {
       }
     },
 
-    async changePath(path) {
+    async getSubPath() {
       if (!isExcuted) await this.read();
 
-      const subpath = homepage.slice(window.location.origin.length, homepage.length);
-      return `${subpath}${path}`;
+      const subpath = homepage.slice(window.location.origin.length);
+      return subpath;
     },
   };
 }
@@ -39,10 +40,11 @@ function createHomePageFetcher() {
 const homepageFetcher = createHomePageFetcher();
 
 const render = async (path) => {
-  path = await homepageFetcher.changePath(path);
+  const subpath = await homepageFetcher.getSubPath();
 
   const component =
-    routes.find((v) => (v.exact ? v.path === path : path.includes(v.path)))?.component || NotFound;
+    routes.find((v) => (v.exact ? subpath + v.path === path : path.includes(subpath + v.path)))
+      ?.component || NotFound;
 
   try {
     $app.replaceChildren(await component());
@@ -53,8 +55,8 @@ const render = async (path) => {
 };
 
 const historyPush = async (path) => {
-  path = await homepageFetcher.changePath(path);
-  history.pushState({}, "", path);
+  const subpath = await homepageFetcher.getSubPath();
+  history.pushState({}, "", subpath + path);
   await render(path);
 };
 
