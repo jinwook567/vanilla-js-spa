@@ -20,8 +20,10 @@ jobs:
       - name: Package Install
         run: npm install
 
-      - name: Build
+      - name: Set env
         run: export NODE_ENV=production
+
+      - name: Build
         run: npm run build
 
       - name: Deploy
