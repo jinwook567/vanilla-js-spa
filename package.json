@@ -9,6 +9,7 @@
     "build": "node build.js"
   },
   "type": "module",
+  "homepage": "https://jinwook567.github.io/vanilla-js-spa",
   "devDependencies": {
     "nodemon": "^2.0.19"
   }

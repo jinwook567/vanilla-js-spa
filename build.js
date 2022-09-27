@@ -5,6 +5,8 @@ import MarkDownIt from "markdown-it";
 const mdFolderRelativePathInPublicFolder = "./books";
 const jsonFolderRelativePathInPublicFolder = "./data";
 
+const packageJson = JSON.parse(await readFile("./package.json", "utf8"));
+
 class Markdown extends MarkDownIt {
   changeRenderImageRelativePathPublicAsRoot(currentRelativePathInPublic) {
     const temp = this.renderer.rules.image;
@@ -12,7 +14,7 @@ class Markdown extends MarkDownIt {
       const token = tokens[idx];
       const aIndex = token.attrIndex("src");
 
-      token.attrs[aIndex][1] = changeRelativePathPublicAsRoot(
+      token.attrs[aIndex][1] = relativePathInPublic.changePublicAsRoot(
         token.attrs[aIndex][1],
         currentRelativePathInPublic
       );
@@ -67,6 +69,15 @@ const relativePathInPublic = {
       throw new Error("참조하는 상대 경로가 public 폴더 내부에 있지 않습니다.");
     }
 
+    if (process.env.NODE_ENV === "production" && packageJson.homepage) {
+      const subpath = packageJson.homepage.replace(/^http[s]\:\/\/[\d\D]*\//, "");
+      return encodeURI(
+        `/${subpath}${currentRelativePathInPublic.replace("./", "/")}/${relativePath.replace(
+          "./",
+          ""
+        )}`
+      );
+    }
     return encodeURI(`${currentRelativePathInPublic}/${relativePath.replace("./", "")}`);
   },
 
@@ -129,18 +140,36 @@ async function parseMdFolderToJSON() {
       })
     );
 
-    const absoluteJSONFolderPath = relativePathInPublic.createAbsolutePath(
+    const absoluteBookJsonPath = relativePathInPublic.createAbsolutePath(
       `${jsonFolderRelativePathInPublicFolder}/book-data.json`
     );
 
-    await writeFile(absoluteJSONFolderPath, JSON.stringify(data));
-    console.log("build complete");
+    await writeFile(absoluteBookJsonPath, JSON.stringify(data));
   } catch (e) {
     console.error(e);
   }
 }
 
-parseMdFolderToJSON();
+async function createHomePageJSON() {
+  try {
+    if (process.env.NODE_ENV === "production" && packageJson.homepage) {
+      const absoluteHomePageJsonPath = relativePathInPublic.createAbsolutePath(
+        `${jsonFolderRelativePathInPublicFolder}/homepage.json`
+      );
+      await writeFile(absoluteHomePageJsonPath, JSON.stringify(packageJson.homepage));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function build() {
+  await parseMdFolderToJSON();
+  await createHomePageJSON();
+  console.log("build complete");
+}
+
+build();
 
 //public 폴더 아래, 같은 폴더명이 있을 경우 문제가 발생할 수 있어 사용하지 않기로함.
 const findFolderInPublic = async (folderName) => {
